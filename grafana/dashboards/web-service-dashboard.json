@@ -1,0 +1,13 @@
+{
+  "id": null,
+  "title": "Web Service Dashboard",
+  "panels": [
+    {
+      "title": "Service Up",
+      "type": "graph",
+      "targets": [
+        { "expr": "up{job='web-service'}", "legendFormat": "Up" }
+      ]
+    }
+  ]
+}

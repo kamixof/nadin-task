@@ -1,0 +1,76 @@
+variables:
+  GIT_DEPTH: 0
+  DOCKER_TLS_CERTDIR: ""  # غیرفعال کردن TLS
+
+cache:
+  key: "${CI_COMMIT_REF_SLUG}-v7"  # کلید کش جدید
+  paths:
+    - .
+
+stages:
+  - build
+  - test
+  - deploy
+  - monitor
+
+# مرحله: ساخت تصویر
+build_web_service:
+  stage: build
+  image: docker:24.0
+  services:
+    - docker:24.0-dind
+  script:
+    - docker build -t nadinsoft-web:latest .
+  rules:
+    - changes:
+        - Dockerfile
+        - app.py
+        - requirements.txt
+      when: always
+
+# مرحله: تست واحد
+test_web_service:
+  stage: test
+  image: python:3.9-slim
+  script:
+    - pip install pytest
+    - pip install -r requirements.txt
+    - python -m pytest --tb=short -v test/test_app.py
+  rules:
+    - changes:
+        - app.py
+        - test/**/*
+      when: always
+
+# مرحله: استقرار با Docker Compose
+deploy_web_service:
+  stage: deploy
+  image: docker/compose:latest
+  services:
+    - docker:24.0-dind
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - docker info --format '{{.ServerVersion}}'  # بررسی اتصال به Docker Daemon
+    - cat docker-compose.yml  # نمایش محتوای فایل برای دیباگ
+    - docker-compose down
+    - docker-compose up -d web-service
+    - sleep 10
+    - curl -f http://192.168.83.7:5000 || exit 1
+  rules:
+    - when: manual
+
+# مرحله: راه‌اندازی مانیتورینگ
+setup_monitoring:
+  stage: monitor
+  image: docker/compose:latest
+  services:
+    - docker:24.0-dind
+  script:
+    - ls -la prometheus/ alertmanager/  # بررسی وجود فایل‌ها
+    - cat docker-compose.yml  # نمایش محتوای فایل برای دیباگ
+    - docker info --format '{{.ServerVersion}}'  # بررسی اتصال به Docker Daemon
+    - docker-compose up -d prometheus grafana alertmanager node_exporter
+    - echo "Monitoring stack started on ports 9090 (Prometheus), 3000 (Grafana), 9093 (Alertmanager), 9100 (Node Exporter)"
+  rules:
+    - when: manual
