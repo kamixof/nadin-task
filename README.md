@@ -14,20 +14,35 @@
 docker logs task_web-service_1
 <img width="833" height="474" alt="Screenshot 2025-08-08 105010" src="https://github.com/user-attachments/assets/3fcd7dc0-266b-4fb2-8dc8-83043d757a0f" />
 
+<img width="1884" height="937" alt="Screenshot 2025-08-08 110610" src="https://github.com/user-attachments/assets/cbe42bc8-fd3c-4a38-b9ab-ca052b99dccd" />
+
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 docker logs logs task_alertmanager_1
 
 <img width="1652" height="316" alt="Screenshot 2025-08-08 105100" src="https://github.com/user-attachments/assets/67bd7ee9-7319-4486-bd65-341f3b43f5cb" />
+
+
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 docker logs task_node_exporter_1
 
 <img width="1639" height="444" alt="Screenshot 2025-08-08 105359" src="https://github.com/user-attachments/assets/3762aa55-330f-40e5-a5ac-2ebba105f116" />
+
+<img width="1919" height="967" alt="Screenshot 2025-08-08 110944" src="https://github.com/user-attachments/assets/d866d7c3-8ffe-48c8-b053-f3d962073cea" />
+
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 docker logs task_prometheus_1 
 
 <img width="1677" height="566" alt="Screenshot 2025-08-08 105605" src="https://github.com/user-attachments/assets/bcde062c-fe24-464f-b455-a5c0a1b0b1b7" />
 
+
+<img width="1907" height="951" alt="Screenshot 2025-08-08 111248" src="https://github.com/user-attachments/assets/7c1473a4-84e9-4107-b6d5-eca67d48aeee" />
+
+<img width="1915" height="929" alt="Screenshot 2025-08-08 111326" src="https://github.com/user-attachments/assets/405b4cb9-59d0-4ee1-8896-2f377890f4e9" />
+
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 docker logs task_grafana_1 | tail -10
 
 <img width="1656" height="423" alt="Screenshot 2025-08-08 105911" src="https://github.com/user-attachments/assets/1a6aea02-6cfd-4b9b-acd2-e4a5b25874b7" />
+
+
+<img width="1912" height="971" alt="Screenshot 2025-08-08 111356" src="https://github.com/user-attachments/assets/2ebc1e3b-811e-4b3a-a02e-582f2d238762" />
