@@ -19,6 +19,7 @@ services:
     depends_on:
       - web-service
       - node_exporter
+    restart: always
     networks:
       - devops-net
 
@@ -28,6 +29,7 @@ services:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
     ports:
       - "9093:9093"
+    restart: always   
     networks:
       - devops-net
 
@@ -35,6 +37,7 @@ services:
     image: grafana/grafana:10.3.3
     ports:
       - "3000:3000"
+    restart: always  
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_SERVER_ROOT_URL=http://192.168.83.7:3000
@@ -57,7 +60,7 @@ services:
       - '--path.rootfs=/rootfs'
     ports:
       - "9100:9100"
-    restart: unless-stopped
+    restart: always
     networks:
       - devops-net
 
