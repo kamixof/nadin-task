@@ -1,0 +1,94 @@
+```bash
+#!/bin/bash
+
+# Applying iptables rules to restrict external access while preserving Docker functionality
+# Flush existing rules in DOCKER-USER chain
+iptables -F DOCKER-USER
+iptables -X DOCKER-USER 2>/dev/null || true
+
+# Ensure DOCKER-USER chain exists
+iptables -N DOCKER-USER
+
+# Set default policies
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT ACCEPT
+
+# Allow loopback interface
+iptables -A INPUT -i lo -j ACCEPT
+
+# Allow established and related connections
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Allow Docker internal network (default bridge network, e.g., 172.17.0.0/16)
+iptables -A FORWARD -s 172.17.0.0/16 -d 172.17.0.0/16 -j ACCEPT
+iptables -A FORWARD -i docker0 -j ACCEPT
+
+# Allow internal IP range (192.168.83.0/24) to access specific ports in DOCKER-USER
+iptables -A DOCKER-USER -s 192.168.83.0/24 -p tcp --dport 80 -j ACCEPT
+iptables -A DOCKER-USER -s 192.168.83.0/24 -p tcp --dport 2222 -j ACCEPT
+iptables -A DOCKER-USER -s 192.168.83.0/24 -p tcp --dport 9090 -j ACCEPT
+iptables -A DOCKER-USER -s 192.168.83.0/24 -p tcp --dport 9100 -j ACCEPT
+iptables -A DOCKER-USER -s 192.168.83.0/24 -p tcp --dport 3000 -j ACCEPT
+iptables -A DOCKER-USER -s 192.168.83.0/24 -p tcp --dport 9093 -j ACCEPT
+iptables -A DOCKER-USER -s 192.168.83.0/24 -p tcp --dport 5000 -j ACCEPT
+iptables -A DOCKER-USER -s 192.168.83.0/24 -p tcp --dport 8001 -j ACCEPT
+
+# Drop all other external traffic in DOCKER-USER
+iptables -A DOCKER-USER -j DROP
+
+# Ensure DOCKER-USER is processed for forwarded traffic
+iptables -I FORWARD -j DOCKER-USER
+
+# Save iptables rules
+iptables-save > /etc/iptables/rules.v4
+
+# Display current iptables rules
+echo "Current iptables rules:"
+iptables -L -v -n
+```
+
+### توضیحات تغییرات:
+1. **استفاده از DOCKER-USER**:
+   - قوانین مربوط به پورت‌های کانتینرها به chain `DOCKER-USER` منتقل شده‌اند تا با قوانین NAT و FORWARD پیش‌فرض Docker تداخل نداشته باشند.
+   - این chain قبل از chain `DOCKER` پردازش می‌شود و به شما امکان می‌دهد قوانین خود را اعمال کنید بدون اینکه قوانین Docker را مختل کنید.
+
+2. **اجازه ترافیک شبکه داخلی Docker**:
+   - قانون `iptables -A FORWARD -s 172.17.0.0/16 -d 172.17.0.0/16 -j ACCEPT` ارتباط بین کانتینرها در شبکه bridge پیش‌فرض را مجاز می‌کند.
+   - قانون `iptables -A FORWARD -i docker0 -j ACCEPT` ترافیک از رابط شبکه docker0 (شبکه bridge پیش‌فرض) را مجاز می‌کند.
+
+3. **حفظ port forwarding**:
+   - با استفاده از `DOCKER-USER`، قوانین NAT Docker برای map کردن پورت‌ها (مثل 0.0.0.0:3000->3000/tcp) حفظ می‌شوند.
+
+4. **ذخیره قوانین**:
+   - قوانین با `iptables-save` ذخیره می‌شوند تا پس از ری‌استارت سرور حفظ شوند.
+
+### نکات اجرایی:
+1. **اجرا**:
+   - اسکریپت را با دسترسی root اجرا کنید:
+     ```bash
+     sudo bash iptables_docker_compatible.sh
+     ```
+   - برای ذخیره دائمی قوانین، بسته `iptables-persistent` یا معادل آن را نصب کنید (مثلاً `apt install iptables-persistent` در اوبونتو).
+
+2. **بررسی شبکه Docker**:
+   - رنج IP شبکه Docker (مثل 172.17.0.0/16) ممکن است بسته به تنظیمات شما متفاوت باشد. برای تأیید، از دستور زیر استفاده کنید:
+     ```bash
+     docker network inspect bridge
+     ```
+     اگر رنج IP دیگری (مثل 172.18.0.0/16) استفاده شده، قانون مربوط به `172.17.0.0/16` را در اسکریپت اصلاح کنید.
+
+3. **تست قوانین**:
+   - پس از اعمال قوانین، دسترسی به پورت‌ها را از یک دستگاه در رنج 192.168.83.0/24 تست کنید (مثل `curl http://192.168.83.7:80`).
+   - از یک IP خارجی تست کنید تا مطمئن شوید دسترسی مسدود شده است.
+   - ارتباط بین کانتینرها (مثل Prometheus که به Node Exporter متصل می‌شود) را بررسی کنید.
+
+4. **شبکه‌های سفارشی**:
+   - اگر از شبکه‌های سفارشی Docker (مثل شبکه‌های تعریف‌شده توسط docker-compose) استفاده می‌کنید، رنج IP و رابط شبکه (interface) آن‌ها را بررسی کنید و قوانین FORWARD را متناسب با آن‌ها تنظیم کنید:
+     ```bash
+     docker network ls
+     docker network inspect <network_name>
+     ```
+
+### پاسخ نهایی:
+قوانین iptables ارائه‌شده در اسکریپت اولیه ممکن است باعث مشکل در ارتباطات داخلی کانتینرها یا port forwarding شوند، به‌خصوص به دلیل سیاست `FORWARD DROP`. اسکریپت اصلاح‌شده با استفاده از chain `DOCKER-USER` و اجازه ترافیک شبکه داخلی Docker (مثل 172.17.0.0/16) این مشکلات را برطرف می‌کند. اگر از شبکه‌های سفارشی استفاده می‌کنید یا نیاز به تنظیمات خاصی (مثل پورت 443 برای GitLab یا دسترسی به منابع خارجی) دارید، لطفاً جزئیات بیشتری ارائه دهید تا قوانین را دقیق‌تر تنظیم کنم!
